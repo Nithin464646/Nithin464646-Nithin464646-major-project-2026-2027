@@ -1,0 +1,6 @@
+{
+  "name": "AgriConnect",
+  "description": "Premium futuristic AI-powered agricultural intelligence platform providing real-time market prices, ML predictions, scheme recommendations, weather advisories, and an bilingual AI Assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

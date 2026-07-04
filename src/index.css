@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Light agricultural green palette */
+  --color-primary: #1a5c38;
+  --color-primary-dark: #134429;
+  --color-primary-light: #2e7d52;
+  --color-primary-hover: #1f6e44;
+
+  --color-surface: #ffffff;
+  --color-surface-soft: #f4f8f4;
+  --color-surface-muted: #edf4ee;
+  --color-border: #d1e4d5;
+  --color-border-light: #e8f2e9;
+
+  --color-text-primary: #1a2e1c;
+  --color-text-secondary: #4a6550;
+  --color-text-muted: #7a9a80;
+
+  --color-accent-amber: #f59e0b;
+  --color-accent-blue: #2563eb;
+  --color-danger: #dc2626;
+
+  /* Override slate to match natural muted greens */
+  --color-slate-50: #f4f8f4;
+  --color-slate-100: #e8f2e9;
+  --color-slate-200: #d1e4d5;
+  --color-slate-300: #a8cbb0;
+  --color-slate-400: #7a9a80;
+  --color-slate-500: #4a6550;
+  --color-slate-600: #3a5240;
+  --color-slate-700: #2a3d30;
+  --color-slate-800: #1e2e22;
+  --color-slate-900: #131f16;
+  --color-slate-950: #0a120c;
+}
+
+/* Base */
+* { box-sizing: border-box; }
+
+body {
+  background-color: #f4f8f4;
+  color: #1a2e1c;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #e8f2e9; }
+::-webkit-scrollbar-thumb { background: #a8cbb0; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #2e7d52; }
+
+/* ============================
+   AGRI DESIGN SYSTEM UTILITIES
+   ============================ */
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background-color: #1a5c38;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.btn-primary:hover { background-color: #134429; }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: #1a5c38;
+  font-weight: 600;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  border: 1.5px solid #1a5c38;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-outline:hover { background-color: #1a5c38; color: #fff; }
+
+/* Cards */
+.agri-card {
+  background: #ffffff;
+  border: 1px solid #d1e4d5;
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: box-shadow 0.2s ease;
+}
+.agri-card:hover { box-shadow: 0 4px 16px rgba(26, 92, 56, 0.08); }
+
+/* Inputs */
+.agri-input {
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid #d1e4d5;
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.875rem;
+  color: #1a2e1c;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.agri-input:focus { border-color: #1a5c38; }
+.agri-input::placeholder { color: #7a9a80; }
+
+.agri-select {
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid #d1e4d5;
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.875rem;
+  color: #1a2e1c;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.agri-select:focus { border-color: #1a5c38; }
+
+/* Section label */
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1a5c38;
+}
+
+/* Stats badge */
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  background: #edf4ee;
+  border: 1px solid #d1e4d5;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1a5c38;
+}
+
+/* Green badge */
+.badge-green {
+  display: inline-flex;
+  padding: 0.2rem 0.6rem;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 1px solid #bbf7d0;
+}
+
+/* Pulse animation for status dots */
+@keyframes agriPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-agri-pulse { animation: agriPulse 2s ease-in-out infinite; }
+
+/* Fade in animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeInUp 0.35s ease forwards; }
+
+/* Table styles */
+.agri-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.agri-table thead tr { background-color: #1a5c38; color: #ffffff; }
+.agri-table thead th { padding: 0.7rem 1rem; text-align: left; font-weight: 600; font-size: 0.8rem; }
+.agri-table tbody tr { border-bottom: 1px solid #e8f2e9; transition: background 0.15s; }
+.agri-table tbody tr:hover { background-color: #f4f8f4; }
+.agri-table tbody td { padding: 0.65rem 1rem; color: #1a2e1c; }
