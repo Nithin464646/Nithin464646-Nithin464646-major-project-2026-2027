@@ -249,7 +249,7 @@ export default function AdminPanel() {
             { tag: "farmers", label: "Farmer Directory", icon: Users },
             { tag: "prices", label: "Mandi Price Overwrites", icon: TrendingUp },
             { tag: "schemes", label: "Setup Subsidies / Schemes", icon: Award },
-            { tag: "guides", label: "Guides & Videos Hub", icon: PlayCircle }
+            { tag: "guides", label: "Edu Hub", icon: PlayCircle }
           ].map((item) => (
             <button
               key={item.tag}

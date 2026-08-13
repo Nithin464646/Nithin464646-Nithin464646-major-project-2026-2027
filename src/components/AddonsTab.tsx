@@ -4,13 +4,16 @@ import {
   Sprout, Globe, Check, AlertCircle, Send, Sparkles, Sliders, RefreshCw 
 } from "lucide-react";
 import { User, ForumPost, Language } from "../types";
+import { getTranslation } from "../utils/translations";
 
 interface AddonsTabProps {
   userProfile: User | null;
   onUpdateProfile: (updated: User) => void;
+  currentLanguage?: Language;
 }
 
-export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabProps) {
+export default function AddonsTab({ userProfile, onUpdateProfile, currentLanguage = Language.ENGLISH }: AddonsTabProps) {
+  const t = (key: string) => getTranslation(currentLanguage, key);
   const [panel, setPanel] = useState<"profile" | "forum" | "disease" | "calculator" | "calendar">("profile");
 
   // Profile Edit
@@ -250,14 +253,13 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
       
       {/* Toast Alert pop */}
       {toast && (
-        <div className="fixed bottom-6 left-6 p-3.5 bg-white border border-[#d1e4d5] text-xs text-[#1a5c38] rounded-xl shadow-2xl z-50 flex items-center gap-1.5 animate-bounce">
-          <Check className="w-4.5 h-4.5 text-[#1a5c38]" /> {toast}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#166534] text-white px-6 py-3 rounded-full shadow-2xl text-sm font-semibold flex items-center gap-2">
+          <Check className="w-4.5 h-4.5 text-white" /> {toast}
         </div>
       )}
 
-      {/* Tabs list left navigation */}
-      <div className="lg:col-span-3 flex flex-col gap-2 p-4 border border-[#d1e4d5] bg-white rounded-2xl shadow-sm">
-        <p className="text-xs font-bold text-[#7a9a80] uppercase tracking-widest px-3 mb-2">Grower Addons</p>
+      {/* Tabs list top navigation */}
+      <div className="lg:col-span-12 flex flex-wrap gap-2 mb-6 p-1 bg-[#f0f6f1] rounded-2xl border border-[#d1e4d5]">
         {[
           { tag: "profile", label: "Farmer Profile Settings", icon: UserIcon },
           { tag: "forum", label: "Farmer Community Forum", icon: MessageSquare },
@@ -268,20 +270,33 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
           <button
             key={item.tag}
             onClick={() => setPanel(item.tag as any)}
-            className={`w-full text-left text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${panel === item.tag ? "bg-[#1a5c38] border-[#1a5c38] text-white font-bold" : "border-transparent text-[#4a6550] hover:bg-[#edf4ee] hover:text-[#1a5c38]"}`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer flex-1 justify-center ${panel === item.tag ? 'bg-white shadow text-[#166534] border border-[#d1e4d5]' : 'text-[#4a6550] hover:text-[#166634] hover:bg-white/50'}`}
           >
             <item.icon className="w-4 h-4" />
-            <span>{item.label}</span>
+            <span className="hidden sm:inline">{item.label}</span>
           </button>
         ))}
       </div>
 
       {/* Center panel rendering */}
-      <div className="lg:col-span-9 p-6 border border-[#d1e4d5] bg-white rounded-2xl min-h-120 shadow-sm">
+      <div className="lg:col-span-12 p-6 border border-[#d1e4d5] bg-white rounded-2xl min-h-120 shadow-sm">
         
         {/* VIEW 1: FARMER PROFILE EDIT */}
         {panel === "profile" && (
           <form onSubmit={handleSaveProfile} className="space-y-6">
+            <div className="mb-6 p-5 rounded-2xl bg-gradient-to-br from-[#14532d] to-[#166534] text-white">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-2xl font-black">
+                  {profName.charAt(0).toUpperCase() || 'F'}
+                </div>
+                <div>
+                  <p className="font-bold text-lg leading-tight">{profName || 'Farmer'}</p>
+                  <p className="text-green-300 text-sm">Farmer • {profDistrict}</p>
+                  <p className="text-green-200 text-xs mt-0.5">{profLand} acres • {userProfile?.cropsGrown?.join(', ')}</p>
+                </div>
+              </div>
+            </div>
+
             <div>
               <span className="text-xs font-bold text-[#1a5c38] tracking-wider uppercase">Identity Parameters</span>
               <h3 className="text-lg font-bold text-[#1a2e1c]">Farmer Registration Profile</h3>
@@ -289,37 +304,37 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#4a6550]">Aadhaar Registered Name</label>
+                <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">Aadhaar Registered Name</label>
                 <input
                   id="profile-name-input"
                   type="text"
                   value={profName}
                   onChange={e => setProfName(e.target.value)}
-                  className="w-full bg-[#f4f8f4] mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
+                  className="w-full bg-[#f4f8f4] border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#4a6550]">Contact / Mobile Number</label>
+                <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">Contact / Mobile Number</label>
                 <input
                   id="profile-phone-input"
                   type="tel"
                   value={profPhone}
                   onChange={e => setProfPhone(e.target.value)}
-                  className="w-full bg-[#f4f8f4] mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
+                  className="w-full bg-[#f4f8f4] border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#4a6550]">District Region</label>
+                <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">District Region</label>
                 <select
                   id="profile-district-select"
                   value={profDistrict}
                   onChange={e => setProfDistrict(e.target.value)}
-                  className="w-full bg-white mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
+                  className="w-full bg-white border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
                 >
                   {["Bengaluru Urban", "Bengaluru Rural", "Kolar", "Chikkaballapur", "Tumakuru", "Ramanagara", "Mandya", "Mysuru", "Hassan"].map(d => (
                     <option key={d} value={d}>{d}</option>
@@ -328,25 +343,25 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#4a6550]">Village / Taluk</label>
+                <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">Village / Taluk</label>
                 <input
                   id="profile-village-input"
                   type="text"
                   value={profVillage}
                   onChange={e => setProfVillage(e.target.value)}
-                  className="w-full bg-[#f4f8f4] mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
+                  className="w-full bg-[#f4f8f4] border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#4a6550]">Farming Land Holding (Acres)</label>
+                <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">Farming Land Holding (Acres)</label>
                 <input
                   id="profile-land-input"
                   type="number"
                   value={profLand}
                   onChange={e => setProfLand(Number(e.target.value))}
-                  className="w-full bg-[#f4f8f4] mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
+                  className="w-full bg-[#f4f8f4] border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
                   required
                 />
               </div>
@@ -354,23 +369,23 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#4a6550]">Crops Cultivated Today (commas)</label>
+                <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">Crops Cultivated Today (commas)</label>
                 <input
                   id="profile-crops-input"
                   type="text"
                   value={profCrops}
                   onChange={e => setProfCrops(e.target.value)}
-                  className="w-full bg-[#f4f8f4] mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
+                  className="w-full bg-[#f4f8f4] border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#4a6550]">System Preferred Language</label>
+                <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">System Preferred Language</label>
                 <select
                   id="profile-language-select"
                   value={profLang}
                   onChange={e => setProfLang(e.target.value as Language)}
-                  className="w-full bg-white mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
+                  className="w-full bg-white border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-xl py-2 px-3 focus:outline-none focus:border-[#1a5c38]"
                 >
                   <option value={Language.ENGLISH}>English (Platform default)</option>
                   <option value={Language.KANNADA}>ಕನ್ನಡ (Kannada)</option>
@@ -385,7 +400,7 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
               id="btn-save-profile"
               type="submit"
               disabled={savingProfile}
-              className="py-2.5 px-5 bg-[#1a5c38] text-white hover:bg-[#134429] font-bold rounded-xl cursor-pointer text-xs shadow-sm"
+              className="btn-primary w-full justify-center flex py-3 bg-[#166534] text-white hover:bg-[#14532d] font-bold rounded-xl cursor-pointer text-sm shadow-sm"
             >
               {savingProfile ? "Encrypting changes..." : "Save Profile Settings"}
             </button>
@@ -437,16 +452,21 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
             {/* Thread Posts lists */}
             <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
               {forumPosts.map((post) => (
-                <div key={post.id} className="p-4 rounded-xl border border-[#d1e4d5] bg-white space-y-3 shadow-sm">
+                <div key={post.id} className="p-4 rounded-2xl border border-[#d1e4d5] bg-white hover:shadow-sm transition-all space-y-3">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-[#1a2e1c]">{post.author}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#edf4ee] border border-[#d1e4d5] text-[#1a5c38] uppercase">
-                          {post.role}
-                        </span>
+                    <div className="flex gap-3 items-center">
+                      <div className="w-9 h-9 rounded-full bg-[#166534] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                        {post.author.charAt(0)}
                       </div>
-                      <span className="text-xs text-[#7a9a80]">{post.district} • {new Date(post.timestamp).toLocaleDateString()}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-[#1a2e1c]">{post.author}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#edf4ee] border border-[#d1e4d5] text-[#1a5c38] uppercase">
+                            {post.role}
+                          </span>
+                        </div>
+                        <span className="text-xs text-[#7a9a80]">{post.district} • {new Date(post.timestamp).toLocaleDateString()}</span>
+                      </div>
                     </div>
 
                     <span className="text-[10px] text-[#1a5c38] border border-[#d1e4d5] bg-[#f4f8f4] px-2 py-0.5 rounded-lg uppercase font-bold">
@@ -460,7 +480,7 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
                   <div className="flex items-center gap-4 text-xs border-t border-[#e8f2e9] pt-2 text-[#7a9a80]">
                     <button
                       onClick={() => handleLikePost(post.id)}
-                      className="flex items-center gap-1 hover:text-[#1a5c38] cursor-pointer"
+                      className="btn-sm flex items-center gap-1 hover:text-[#1a5c38] cursor-pointer"
                     >
                       <ThumbsUp className="w-3.5 h-3.5" /> Likes ({post.likes})
                     </button>
@@ -518,25 +538,25 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
               <h3 className="text-lg font-bold text-[#1a2e1c]">AI Crop Disease & Pest Scanner</h3>
             </div>
 
-            <div className="p-4 rounded-xl border border-[#d1e4d5] bg-[#f4f8f4] space-y-4">
-              <p className="text-sm text-[#4a6550] leading-normal">
-                Describe the visual disease crop indicators or leaf spot characteristics (e.g., "spots on tomato leaves", "purple patches on onions", "rot signs"). Our advisory algorithm traces causal fungi and recommends targeted remedies.
-              </p>
-
-              <div className="flex gap-2">
+            <div className="border-2 border-dashed border-[#d1e4d5] rounded-2xl p-8 text-center hover:border-[#166534]/40 transition-colors bg-[#f0f6f1]">
+              <Bug className="w-10 h-10 text-[#d1e4d5] mx-auto mb-3" />
+              <p className="text-sm font-semibold text-[#4a6550] mb-1">Describe symptoms or paste text</p>
+              <p className="text-xs text-[#7a9a80] mb-4">Tell us about spots, color changes, wilting</p>
+              
+              <div className="flex flex-col gap-3">
                 <input
                   id="disease-symptom-input"
                   type="text"
                   value={diseaseInput}
                   onChange={e => setDiseaseInput(e.target.value)}
                   placeholder="Describe crop leaf symptoms..."
-                  className="flex-1 bg-white text-sm border border-[#d1e4d5] rounded-xl p-2.5 px-3 text-[#1a2e1c] focus:outline-none focus:border-[#1a5c38]"
+                  className="w-full bg-white text-sm border border-[#d1e4d5] rounded-xl p-3 text-[#1a2e1c] focus:outline-none focus:border-[#1a5c38]"
                 />
                 <button
                   id="btn-diagnose-disease"
                   onClick={diagnoseCropDisease}
                   disabled={diagnosing}
-                  className="py-2.5 px-4 bg-[#1a5c38] hover:bg-[#134429] text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm"
+                  className="btn-primary w-full justify-center flex py-3 bg-[#166534] hover:bg-[#14532d] text-white text-sm font-bold rounded-xl cursor-pointer shadow-sm"
                 >
                   {diagnosing ? "Scanning..." : "Diagnose Symptoms"}
                 </button>
@@ -544,8 +564,8 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
             </div>
 
             {aiDiagnosis && (
-              <div className="p-5 rounded-2xl border border-green-200 bg-green-50/30 space-y-4 shadow-sm animate-fade-in">
-                <div className="flex items-center gap-1.5 text-[#1a5c38] font-bold text-sm uppercase">
+              <div className="mt-4 p-4 rounded-2xl bg-[#f0f6f1] border border-[#d1e4d5]">
+                <div className="flex items-center gap-1.5 text-[#1a5c38] font-bold text-sm uppercase mb-4">
                   <Bug className="w-4.5 h-4.5 text-[#1a5c38] animate-bounce" /> Diagnosis Output: {aiDiagnosis.disease}
                 </div>
 
@@ -580,12 +600,12 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
               {/* Inputs Section */}
               <div className="md:col-span-5 p-5 rounded-xl border border-[#d1e4d5] bg-[#f4f8f4] space-y-4 flex flex-col justify-between shadow-sm">
                 <div>
-                  <label className="text-xs font-semibold text-[#4a6550]">Crop Classification</label>
+                  <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">Crop Classification</label>
                   <select
                     id="calc-crop-select"
                     value={calcCrop}
                     onChange={e => setCalcCrop(e.target.value)}
-                    className="w-full bg-white mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-lg py-2.5 px-3 focus:outline-none focus:border-[#1a5c38]"
+                    className="w-full bg-white border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-lg py-2.5 px-3 focus:outline-none focus:border-[#1a5c38]"
                   >
                     <option value="Tomato">Tomato</option>
                     <option value="Onion">Onion</option>
@@ -595,13 +615,13 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-[#4a6550]">Acreage Coverage (Acres)</label>
+                  <label className="text-xs font-semibold text-[#4a6550] uppercase tracking-wide block mb-1">Acreage Coverage (Acres)</label>
                   <input
                     id="calc-acre-input"
                     type="number"
                     value={calcAcre}
                     onChange={e => setCalcAcre(Number(e.target.value))}
-                    className="w-full bg-white mt-1 border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-lg py-2.5 px-3 focus:outline-none focus:border-[#1a5c38]"
+                    className="w-full bg-white border border-[#d1e4d5] text-sm text-[#1a2e1c] rounded-lg py-2.5 px-3 focus:outline-none focus:border-[#1a5c38]"
                   />
                 </div>
 
@@ -638,7 +658,7 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
                 <button
                   id="btn-recalculate-roi"
                   onClick={handleCalculateProfit}
-                  className="w-full mt-2 py-2 bg-[#1a5c38] text-white hover:bg-[#134429] text-xs font-bold rounded-xl cursor-pointer shadow-sm"
+                  className="btn-primary w-full flex justify-center py-3 text-base bg-[#166534] text-white hover:bg-[#14532d] font-bold rounded-xl cursor-pointer shadow-sm mt-2"
                 >
                   Recalculate ROI
                 </button>
@@ -651,6 +671,11 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
                     <span className="text-xs font-bold text-[#1a5c38] tracking-wider uppercase flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5" /> ROI Calculator outputs
                     </span>
+
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-[#14532d] to-[#166534] text-white mt-4">
+                      <p className="text-green-300 text-xs uppercase tracking-widest mb-1">Estimated Profit</p>
+                      <p className="text-4xl font-black">₹{calcResult.profit}</p>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       {/* Estimated Yield */}
@@ -674,10 +699,6 @@ export default function AddonsTab({ userProfile, onUpdateProfile }: AddonsTabPro
                       <div className="flex justify-between border-b border-[#e8f2e9] pb-1 text-[#4a6550]">
                         <span>Projected Mandi Revenue:</span>
                         <span className="font-bold text-[#1a2e1c]">₹{calcResult.revenue}</span>
-                      </div>
-                      <div className="flex justify-between pb-1 text-[#1a5c38] font-bold text-sm">
-                        <span>Expected Net Surplus:</span>
-                        <span>₹{calcResult.profit}</span>
                       </div>
                     </div>
 

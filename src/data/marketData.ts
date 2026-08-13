@@ -28,42 +28,171 @@ export const DISTRICT_MARKETS: { [key: string]: string[] } = {
 
 // Crops list across categories
 export const CROP_LIST = [
+  // Vegetables
   { name: "Tomato", category: "Vegetables" },
   { name: "Onion", category: "Vegetables" },
   { name: "Potato", category: "Vegetables" },
   { name: "Carrot", category: "Vegetables" },
   { name: "Green Chilli", category: "Vegetables" },
   { name: "Cabbage", category: "Vegetables" },
+  { name: "Cauliflower", category: "Vegetables" },
+  { name: "Brinjal (Eggplant)", category: "Vegetables" },
+  { name: "Beans (French)", category: "Vegetables" },
+  { name: "Bitter Gourd", category: "Vegetables" },
+  { name: "Bottle Gourd", category: "Vegetables" },
+  { name: "Ridge Gourd", category: "Vegetables" },
+  { name: "Snake Gourd", category: "Vegetables" },
+  { name: "Lady Finger (Okra)", category: "Vegetables" },
+  { name: "Capsicum", category: "Vegetables" },
+  { name: "Beetroot", category: "Vegetables" },
+  { name: "Radish", category: "Vegetables" },
+  { name: "Spinach", category: "Vegetables" },
+  { name: "Coriander (Leaves)", category: "Vegetables" },
+  { name: "Fenugreek (Leaves)", category: "Vegetables" },
+  { name: "Drumstick (Moringa)", category: "Vegetables" },
+  { name: "Raw Banana", category: "Vegetables" },
+  { name: "Cluster Beans (Guar)", category: "Vegetables" },
+  { name: "Pumpkin", category: "Vegetables" },
+  { name: "Sweet Potato", category: "Vegetables" },
+  { name: "Taro (Arbi)", category: "Vegetables" },
+
+  // Fruits
   { name: "Mango (Alphonso)", category: "Fruits" },
   { name: "Banana (Yelakki)", category: "Fruits" },
   { name: "Papaya", category: "Fruits" },
+  { name: "Grapes (Bangalore Blue)", category: "Fruits" },
+  { name: "Pomegranate", category: "Fruits" },
+  { name: "Sapota (Chikoo)", category: "Fruits" },
+  { name: "Guava", category: "Fruits" },
+  { name: "Watermelon", category: "Fruits" },
+  { name: "Muskmelon", category: "Fruits" },
+  { name: "Pineapple", category: "Fruits" },
+  { name: "Coconut", category: "Fruits" },
+  { name: "Jackfruit", category: "Fruits" },
+  { name: "Lemon", category: "Fruits" },
+  { name: "Orange (Nagpur)", category: "Fruits" },
+  { name: "Apple", category: "Fruits" },
+
+  // Cereals & Grains
   { name: "Paddy (Rice)", category: "Cereals" },
   { name: "Ragi (Finger Millet)", category: "Cereals" },
   { name: "Maize (Corn)", category: "Cereals" },
+  { name: "Jowar (Sorghum)", category: "Cereals" },
+  { name: "Bajra (Pearl Millet)", category: "Cereals" },
+  { name: "Wheat", category: "Cereals" },
+  { name: "Barley", category: "Cereals" },
+  { name: "Foxtail Millet (Navane)", category: "Cereals" },
+
+  // Pulses
   { name: "Tur / Arhar Dal", category: "Pulses" },
   { name: "Bengal Gram (Chana Dal)", category: "Pulses" },
-  { name: "Green Gram (Moong)", category: "Pulses" }
+  { name: "Green Gram (Moong)", category: "Pulses" },
+  { name: "Black Gram (Urad)", category: "Pulses" },
+  { name: "Lentil (Masoor)", category: "Pulses" },
+  { name: "Field Peas (Vatana)", category: "Pulses" },
+  { name: "Cowpea (Lobia)", category: "Pulses" },
+
+  // Spices & Cash Crops
+  { name: "Garlic", category: "Spices" },
+  { name: "Ginger", category: "Spices" },
+  { name: "Turmeric", category: "Spices" },
+  { name: "Coriander Seeds", category: "Spices" },
+  { name: "Cumin (Jeera)", category: "Spices" },
+  { name: "Black Pepper", category: "Spices" },
+  { name: "Cardamom", category: "Spices" },
+  { name: "Dry Red Chilli", category: "Spices" },
+  { name: "Fenugreek Seeds", category: "Spices" },
+
+  // Oilseeds
+  { name: "Groundnut", category: "Oilseeds" },
+  { name: "Sunflower", category: "Oilseeds" },
+  { name: "Sesame (Til)", category: "Oilseeds" },
+  { name: "Soybean", category: "Oilseeds" },
+  { name: "Mustard (Rapeseed)", category: "Oilseeds" },
+  { name: "Castor", category: "Oilseeds" },
 ];
 
 // Generate synthetic but highly representative current prices
 export const generateMarketPrices = (): MarketPrice[] => {
   const prices: MarketPrice[] = [];
   const basePrices: { [crop: string]: number } = {
-    "Tomato": 3200, // per quintal modal
+    // Vegetables
+    "Tomato": 3200,
     "Onion": 2400,
     "Potato": 1800,
     "Carrot": 3500,
     "Green Chilli": 4500,
     "Cabbage": 1200,
+    "Cauliflower": 2200,
+    "Brinjal (Eggplant)": 1800,
+    "Beans (French)": 4000,
+    "Bitter Gourd": 2800,
+    "Bottle Gourd": 1400,
+    "Ridge Gourd": 1600,
+    "Snake Gourd": 1500,
+    "Lady Finger (Okra)": 2500,
+    "Capsicum": 3800,
+    "Beetroot": 2000,
+    "Radish": 1200,
+    "Spinach": 1800,
+    "Coriander (Leaves)": 3000,
+    "Fenugreek (Leaves)": 2200,
+    "Drumstick (Moringa)": 3500,
+    "Raw Banana": 1600,
+    "Cluster Beans (Guar)": 3200,
+    "Pumpkin": 1000,
+    "Sweet Potato": 2000,
+    "Taro (Arbi)": 2400,
+    // Fruits
     "Mango (Alphonso)": 9500,
     "Banana (Yelakki)": 4800,
     "Papaya": 2200,
+    "Grapes (Bangalore Blue)": 6000,
+    "Pomegranate": 8500,
+    "Sapota (Chikoo)": 4000,
+    "Guava": 3200,
+    "Watermelon": 1200,
+    "Muskmelon": 2000,
+    "Pineapple": 3500,
+    "Coconut": 2800,
+    "Jackfruit": 1800,
+    "Lemon": 5000,
+    "Orange (Nagpur)": 4500,
+    "Apple": 12000,
+    // Cereals
     "Paddy (Rice)": 2800,
     "Ragi (Finger Millet)": 3600,
     "Maize (Corn)": 2100,
+    "Jowar (Sorghum)": 2400,
+    "Bajra (Pearl Millet)": 2200,
+    "Wheat": 2600,
+    "Barley": 2000,
+    "Foxtail Millet (Navane)": 3800,
+    // Pulses
     "Tur / Arhar Dal": 7200,
     "Bengal Gram (Chana Dal)": 6000,
-    "Green Gram (Moong)": 8100
+    "Green Gram (Moong)": 8100,
+    "Black Gram (Urad)": 7500,
+    "Lentil (Masoor)": 6500,
+    "Field Peas (Vatana)": 5000,
+    "Cowpea (Lobia)": 5500,
+    // Spices
+    "Garlic": 8000,
+    "Ginger": 6000,
+    "Turmeric": 9000,
+    "Coriander Seeds": 7000,
+    "Cumin (Jeera)": 25000,
+    "Black Pepper": 40000,
+    "Cardamom": 120000,
+    "Dry Red Chilli": 15000,
+    "Fenugreek Seeds": 5500,
+    // Oilseeds
+    "Groundnut": 5500,
+    "Sunflower": 5000,
+    "Sesame (Til)": 12000,
+    "Soybean": 4500,
+    "Mustard (Rapeseed)": 5800,
+    "Castor": 6200,
   };
 
   const today = new Date().toISOString().split("T")[0];
@@ -103,14 +232,26 @@ export const INITIAL_SCHEMES: GovScheme[] = [
   {
     id: "scheme-1",
     name: "Krishi Bhagya Scheme (Karnataka)",
-    benefits: "Provides up to 80% to 90% subsidy on rainwater harvesting farm ponds (Krishi Honda), polythene lining, diesel pumpsets, and drip irrigation units.",
-    eligibility: "Farmers in rain-fed agricultural regions of Karnataka.",
-    requiredDocuments: ["Pahani (RTC) Land Record", "Aadhaar Card", "Bank Passbook", "Caste Certificate (for OBC/SC/ST extra benefit)"],
+    benefits: "Provides 80% to 90% subsidy on rainwater harvesting farm ponds (Krishi Honda), polythene lining, diesel/solar pumpsets, and drip irrigation units.",
+    eligibility: "Farmers in rain-fed dryland agricultural regions of Karnataka with landholding up to 5.0 acres (2.0 hectares).",
+    requiredDocuments: [
+      "Pahani (RTC) Land Record",
+      "Aadhaar Card",
+      "Bank Passbook",
+      "Caste/Category Certificate (mandatory only for SC/ST 90% tier)",
+      "FID Number (Karnataka Farmer Registration ID)"
+    ],
     applyLink: "https://krishibhagya.karnataka.gov.in",
     category: "Irrigation & Rainwater",
     subsidyPercentage: 90,
-    maxLandRequirement: 5,
-    farmerCategories: ["SC", "ST", "Small Farmer", "Marginal Farmer"]
+    subsidyTiers: {
+      scSt: 90,
+      generalObcSmallMarginal: 80
+    },
+    maxLandRequirement: 5.0,
+    maxLandRequirementAcres: 5.0,
+    maxLandRequirementHectares: 2.0,
+    farmerCategories: ["SC", "ST", "General", "OBC", "Small Farmer", "Marginal Farmer"]
   },
   {
     id: "scheme-2",

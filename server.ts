@@ -3,21 +3,22 @@ import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
-import { 
-  generateMarketPrices, 
-  INITIAL_SCHEMES, 
-  INITIAL_GUIDES, 
-  INITIAL_ALERTS, 
-  INITIAL_FORUMS, 
+import { connectDb, getDb } from "./src/db.js";
+import {
+  generateMarketPrices,
+  INITIAL_SCHEMES,
+  INITIAL_GUIDES,
+  INITIAL_ALERTS,
+  INITIAL_FORUMS,
   FOCUS_DISTRICTS,
   DISTRICT_MARKETS
 } from "./src/data/marketData.js";
-import { 
-  User, 
-  MarketPrice, 
-  GovScheme, 
-  EducationalGuide, 
-  SmartAlert, 
+import {
+  User,
+  MarketPrice,
+  GovScheme,
+  EducationalGuide,
+  SmartAlert,
   ForumPost,
   Language,
   GovSchemeRecommendation,
@@ -35,9 +36,17 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// Serve videos folder as static files — process.cwd() points to project root reliably with tsx
+const VIDEOS_DIR = path.join(process.cwd(), "videos");
+app.use("/videos", express.static(VIDEOS_DIR));
+
+// Serve crop images as static files
+app.use("/crop_images", express.static(path.join(process.cwd(), "crop_images")));
+
+const users: User[] = [];
+
 // In-Memory Database (synchronized with state files or running live for persistent UX)
 let db = {
-  users: [] as User[],
   marketPrices: generateMarketPrices(),
   schemes: [...INITIAL_SCHEMES],
   guides: [...INITIAL_GUIDES],
@@ -51,6 +60,7 @@ const seedUser: User = {
   id: "farmer-nithin",
   name: "Nithin Kumar",
   email: "nithinraj805@gmail.com",
+  password: "password123",
   phone: "9876543210",
   state: "Karnataka",
   district: "Kolar",
@@ -62,7 +72,18 @@ const seedUser: User = {
   favoriteMarkets: ["Kolar APMC (Veg & Tomato)", "Yeshwanthpur APMC"],
   watchlistCrops: ["Tomato", "Ragi (Finger Millet)", "Onion"]
 };
-db.users.push(seedUser);
+
+async function seedDefaultUser() {
+  try {
+    const existing = users.find((user) => user.id === seedUser.id);
+    if (!existing) {
+      users.push(seedUser);
+      console.log("[AgriConnect] Seeded default user profile 'farmer-nithin' into memory.");
+    }
+  } catch (error) {
+    console.error("[AgriConnect] Error seeding user:", error);
+  }
+}
 
 // Lazy instantiate Gemini Client (handles empty or missing key gracefully)
 let ai: GoogleGenAI | null = null;
@@ -212,85 +233,167 @@ const computePredictions = (cropName: string, marketName: string): PredictionPay
   };
 };
 
+let currentUser: User | null = null;
+
+// Favicon handler to prevent 404 browser errors
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
 // ======================== API ENDPOINTS ========================
 
 // 1. Authentication
-app.post("/api/auth/register", (req, res) => {
-  const { name, email, phone, state, district, village, landSize, cropsGrown, category, preferredLanguage } = req.body;
-  
-  if (!name || !email) {
-    return res.status(400).json({ error: "Name and email are required" });
+app.get("/api/auth/profile", (req, res) => {
+  if (currentUser) {
+    return res.json({ authenticated: true, user: currentUser });
   }
-
-  const existing = db.users.find(u => u.email === email);
-  if (existing) {
-    return res.status(400).json({ error: "User already registered" });
-  }
-
-  const newUser: User = {
-    id: `farmer-${Date.now()}`,
-    name,
-    email,
-    phone: phone || "",
-    state: state || "Karnataka",
-    district: district || "",
-    village: village || "",
-    landSize: Number(landSize) || 0,
-    cropsGrown: Array.isArray(cropsGrown) ? cropsGrown : [],
-    category: category || "Small Farmer",
-    preferredLanguage: preferredLanguage || Language.ENGLISH,
-    favoriteMarkets: [],
-    watchlistCrops: []
-  };
-
-  db.users.push(newUser);
-  res.json({ success: true, user: newUser });
+  res.json({ authenticated: false });
 });
 
-app.post("/api/auth/login", (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: "Email is required" });
-  }
-
-  const user = db.users.find(u => u.email === email);
-  if (!user) {
-    return res.status(404).json({ error: "Farmer email not found. Please register!" });
-  }
-
-  res.json({ success: true, user });
+app.post("/api/auth/logout", (req, res) => {
+  currentUser = null;
+  res.json({ success: true });
 });
 
-app.get("/api/auth/profile/:id", (req, res) => {
-  const user = db.users.find(u => u.id === req.params.id);
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
+// ── Auth Handlers ────────────────────────────────────────────────────────────
+
+app.post("/api/auth/register", async (req, res) => {
+  const { name, email, password, phone, state, district, village, landSize, cropsGrown, category, preferredLanguage } = req.body;
+  if (!name || !email) return res.status(400).json({ error: "Name and email are required" });
+
+  try {
+    const mongodb = await getDb();
+
+    if (mongodb) {
+      const col = mongodb.collection("users");
+      const existing = await col.findOne({ email });
+      if (existing) return res.status(400).json({ error: "User already registered" });
+
+      const newUser: User = {
+        id: `farmer-${Date.now()}`,
+        name, email, password: password || "password123", phone: phone || "",
+        state: state || "Karnataka", district: district || "",
+        village: village || "", landSize: Number(landSize) || 0,
+        cropsGrown: Array.isArray(cropsGrown) ? cropsGrown : [],
+        category: category || "Small Farmer",
+        preferredLanguage: preferredLanguage || Language.ENGLISH,
+        favoriteMarkets: [], watchlistCrops: []
+      };
+      await col.insertOne({ ...newUser });
+      console.log(`[MongoDB] New user registered: ${email}`);
+      currentUser = newUser;
+      return res.json({ success: true, user: newUser });
+    }
+
+    // Fallback: in-memory
+    const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (existing) return res.status(400).json({ error: "User already registered" });
+    const newUser: User = {
+      id: `farmer-${Date.now()}`, name, email, password: password || "password123", phone: phone || "",
+      state: state || "Karnataka", district: district || "",
+      village: village || "", landSize: Number(landSize) || 0,
+      cropsGrown: Array.isArray(cropsGrown) ? cropsGrown : [],
+      category: category || "Small Farmer",
+      preferredLanguage: preferredLanguage || Language.ENGLISH,
+      favoriteMarkets: [], watchlistCrops: []
+    };
+    users.push(newUser);
+    currentUser = newUser;
+    res.json({ success: true, user: newUser });
+  } catch (error: any) {
+    console.error("Register error:", error);
+    res.status(500).json({ error: "Registration failed: " + error.message });
   }
-  res.json(user);
 });
 
-app.post("/api/auth/profile/update", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email) return res.status(400).json({ error: "Gmail / Email address is required" });
+  if (!password) return res.status(400).json({ error: "Password is required" });
+
+  try {
+    const mongodb = await getDb();
+
+    if (mongodb) {
+      const col = mongodb.collection("users");
+      const user = await col.findOne({ email });
+      if (!user) return res.status(404).json({ error: "No account found with this email. Please register!" });
+      if (user.password && user.password !== password) {
+        return res.status(401).json({ error: "Incorrect password. Please try again." });
+      }
+      const { _id, ...userData } = user as any;
+      console.log(`[MongoDB] User logged in: ${email}`);
+      currentUser = userData;
+      return res.json({ success: true, user: userData });
+    }
+
+    // Fallback: in-memory
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return res.status(404).json({ error: "No account found with this email. Please register!" });
+    if (user.password && user.password !== password) {
+      return res.status(401).json({ error: "Incorrect password. Please try again." });
+    }
+
+    currentUser = user;
+    res.json({ success: true, user });
+  } catch (error: any) {
+    res.status(500).json({ error: "Login failed: " + error.message });
+  }
+});
+
+app.get("/api/auth/profile/:id", async (req, res) => {
+  try {
+    const mongodb = await getDb();
+
+    if (mongodb) {
+      const col = mongodb.collection("users");
+      const user = await col.findOne({ id: req.params.id });
+      if (!user) return res.status(404).json({ error: "User not found" });
+      const { _id, ...userData } = user as any;
+      return res.json(userData);
+    }
+
+    const user = users.find(u => u.id === req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (error: any) {
+    res.status(500).json({ error: "Profile fetch failed: " + error.message });
+  }
+});
+
+app.post("/api/auth/profile/update", async (req, res) => {
   const { id, name, phone, district, village, landSize, cropsGrown, category, preferredLanguage, favoriteMarkets, watchlistCrops } = req.body;
-  const index = db.users.findIndex(u => u.id === id);
-  if (index === -1) {
-    return res.status(404).json({ error: "User not found" });
+
+  try {
+    const mongodb = await getDb();
+
+    const updates: any = {};
+    if (name) updates.name = name;
+    if (phone !== undefined) updates.phone = phone;
+    if (district) updates.district = district;
+    if (village) updates.village = village;
+    if (landSize !== undefined) updates.landSize = Number(landSize);
+    if (Array.isArray(cropsGrown)) updates.cropsGrown = cropsGrown;
+    if (category) updates.category = category;
+    if (preferredLanguage) updates.preferredLanguage = preferredLanguage;
+    if (Array.isArray(favoriteMarkets)) updates.favoriteMarkets = favoriteMarkets;
+    if (Array.isArray(watchlistCrops)) updates.watchlistCrops = watchlistCrops;
+
+    if (mongodb) {
+      const col = mongodb.collection("users");
+      await col.updateOne({ id }, { $set: updates });
+      const updated = await col.findOne({ id });
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      const { _id, ...userData } = updated as any;
+      return res.json({ success: true, user: userData });
+    }
+
+    // Fallback: in-memory
+    const user = users.find(u => u.id === id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    Object.assign(user, updates);
+    res.json({ success: true, user });
+  } catch (error: any) {
+    res.status(500).json({ error: "Profile update failed: " + error.message });
   }
-
-  db.users[index] = {
-    ...db.users[index],
-    name: name || db.users[index].name,
-    phone: phone || db.users[index].phone,
-    district: district || db.users[index].district,
-    village: village || db.users[index].village,
-    landSize: landSize !== undefined ? Number(landSize) : db.users[index].landSize,
-    cropsGrown: Array.isArray(cropsGrown) ? cropsGrown : db.users[index].cropsGrown,
-    category: category || db.users[index].category,
-    preferredLanguage: preferredLanguage || db.users[index].preferredLanguage,
-    favoriteMarkets: Array.isArray(favoriteMarkets) ? favoriteMarkets : db.users[index].favoriteMarkets,
-    watchlistCrops: Array.isArray(watchlistCrops) ? watchlistCrops : db.users[index].watchlistCrops
-  };
-
-  res.json({ success: true, user: db.users[index] });
 });
 
 // 2. Market Prices Endpoints
@@ -416,9 +519,8 @@ app.post("/api/predict/advanced", async (req, res) => {
   const combinedAdjustment = weatherMult * pestMult * soilMult;
   const currentEstPrice = Math.round(basePrice * combinedAdjustment);
 
-  // Time Series Generation (6 intervals)
-  const isDays = timeframe === "30";
-  const numPoints = 6;
+  // Time Series Generation (30 days = all 30 daily predictions)
+  const numPoints = timeframe === "30" ? 30 : 6;
   const dataPoints = [];
   const todayMs = Date.now();
 
@@ -428,11 +530,10 @@ app.post("/api/predict/advanced", async (req, res) => {
     let stepPct = 0;
 
     if (timeframe === "30") {
-      const daysAhead = i * 5; // 5, 10, 15, 20, 25, 30 days
-      const d = new Date(todayMs + daysAhead * 24 * 3600000);
-      label = `Day ${daysAhead}`;
+      const d = new Date(todayMs + i * 24 * 3600000);
+      label = `Day ${i}`;
       dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      stepPct = daysAhead;
+      stepPct = i;
     } else if (timeframe === "90") {
       const daysAhead = i * 15; // 15, 30, 45, 60, 75, 90 days
       const d = new Date(todayMs + daysAhead * 24 * 3600000);
@@ -449,9 +550,9 @@ app.post("/api/predict/advanced", async (req, res) => {
     }
 
     // Sinusoidal oscillation + trend factor depending on inputs
-    const baseWave = Math.sin(i * 0.8) * 0.06;
+    const baseWave = Math.sin(i * 0.4) * 0.05;
     const trendGrowth = (weather === "drought" || weather === "heavy_rain") ? (0.0012 * stepPct) : (0.0004 * stepPct);
-    const fluctuation = ((i * 13 + 7) % 11 - 5) / 150; // pseudo random -3.3% to +3.3%
+    const fluctuation = ((i * 13 + 7) % 11 - 5) / 200; // pseudo random -2.5% to +2.5%
     
     // Final coefficient calculation
     const coeff = 1 + baseWave + trendGrowth + fluctuation;
@@ -461,9 +562,9 @@ app.post("/api/predict/advanced", async (req, res) => {
       label,
       date: dateStr,
       predictedPrice: predictedModal,
-      predictedMin: Math.round(predictedModal * 0.91),
-      predictedMax: Math.round(predictedModal * 1.09),
-      confidenceScore: Math.max(50, Math.round(92 - (stepPct * 0.15)))
+      predictedMin: Math.round(predictedModal * 0.92),
+      predictedMax: Math.round(predictedModal * 1.08),
+      confidenceScore: Math.max(60, Math.round(95 - (stepPct * 0.3)))
     });
   }
 
@@ -565,73 +666,200 @@ app.post("/api/predict/advanced", async (req, res) => {
 });
 
 // 4. Recommendation system for Schemes
-app.get("/api/schemes/recommend", (req, res) => {
+app.get("/api/schemes/recommend", async (req, res) => {
   const { userId } = req.query;
-  if (!userId) {
-    return res.json(db.schemes.map(s => ({
-      ...s,
-      relevanceScore: 70,
-      relevanceReason: "Default standard relevance score"
-    })));
-  }
 
-  const user = db.users.find(u => u.id === userId);
-  if (!user) {
-    return res.status(440).json({ error: "User profile not found" });
-  }
+  try {
+    const user = userId ? users.find((u) => u.id === userId) : null;
 
-  const recommendations: GovSchemeRecommendation[] = db.schemes.map((scheme) => {
-    let score = 50;
-    const reasons: string[] = [];
+    const recommendations: GovSchemeRecommendation[] = db.schemes.map((scheme) => {
+      let score = 50;
+      const reasons: string[] = [];
+      let applicableSubsidy = scheme.subsidyPercentage || 80;
+      let eligible = true;
 
-    // Filter Category matching
-    if (scheme.farmerCategories) {
-      if (scheme.farmerCategories.includes(user.category)) {
-        score += 25;
-        reasons.push(`Direct matching for category ${user.category}`);
+      if (user) {
+        // 1. Normalize land size to acres (convert if unit is specified as hectares)
+        const landUnit = (user as any).landUnit || "acres";
+        const landAcres = landUnit === "hectares" ? user.landSize * 2.471 : user.landSize;
+        const maxLimit = scheme.maxLandRequirementAcres || scheme.maxLandRequirement || 5.0;
+        const minLimit = scheme.minLandRequirement || 0;
+
+        // 2. Hard cutoff for land eligibility
+        if (maxLimit && landAcres > maxLimit) {
+          eligible = false;
+          score = 0;
+          reasons.push(`Ineligible: Land size (${landAcres.toFixed(1)} acres) exceeds maximum limit of ${maxLimit} acres (2.0 hectares)`);
+        } else if (minLimit && landAcres < minLimit) {
+          eligible = false;
+          score = 0;
+          reasons.push(`Ineligible: Minimum land required is ${minLimit} acres`);
+        } else {
+          score += 15;
+          reasons.push(`Land size (${landAcres.toFixed(1)} acres) is within eligible threshold`);
+        }
+
+        // 3. Category weighting and dynamic subsidy tier resolution
+        if (eligible) {
+          const isScSt = ["SC", "ST"].includes(user.category);
+          const isSmallOrMarginal = user.category === "Small Farmer" || user.category === "Marginal Farmer" || landAcres <= 4.94;
+
+          if (scheme.subsidyTiers) {
+            if (isScSt) {
+              applicableSubsidy = scheme.subsidyTiers.scSt; // 90%
+              score += 25;
+              reasons.push(`SC/ST category — qualifies for ${applicableSubsidy}% subsidy tier`);
+            } else if (isSmallOrMarginal) {
+              applicableSubsidy = scheme.subsidyTiers.generalObcSmallMarginal; // 80%
+              score += 20;
+              reasons.push(`Small/Marginal Farmer — qualifies for ${applicableSubsidy}% subsidy tier`);
+            } else {
+              applicableSubsidy = scheme.subsidyTiers.generalObcSmallMarginal; // 80%
+              score += 10;
+              reasons.push(`General/OBC category — standard ${applicableSubsidy}% subsidy tier applies`);
+            }
+          } else if (scheme.farmerCategories) {
+            if (scheme.farmerCategories.includes(user.category)) {
+              score += 20;
+              reasons.push(`Category ${user.category} matches scheme guidelines`);
+            }
+          }
+
+          // 4. Crop interest matching
+          const userCrops = (user.cropsGrown || []).map(c => c.toLowerCase());
+          const isOrganicInterest = userCrops.some(c => c.includes("organic") || c.includes("ragi") || c.includes("millet"));
+          const isVegetableInterest = userCrops.some(c => c.includes("tomato") || c.includes("onion") || c.includes("potato") || c.includes("carrot") || c.includes("maize"));
+
+          if (scheme.category === "Organic Farming" && isOrganicInterest) {
+            score += 20;
+            reasons.push("Matches organic/millet cultivation focus");
+          } else if (scheme.category.includes("Irrigation") && (isVegetableInterest || isOrganicInterest)) {
+            score += 15;
+            reasons.push("Crop selection aligns with drip/water optimization guidelines");
+          }
+        }
       } else {
-        score -= 20;
+        score = 75;
+        applicableSubsidy = scheme.subsidyTiers?.generalObcSmallMarginal || scheme.subsidyPercentage || 80;
+        reasons.push("Standard agricultural scheme matching.");
       }
+
+      // Clamping limits for eligible schemes
+      if (eligible) {
+        score = Math.max(15, Math.min(100, score));
+      }
+
+      return {
+        ...scheme,
+        applicableSubsidy,
+        eligible,
+        relevanceScore: score,
+        relevanceReason: reasons.join(". ") || "General agricultural scheme matching."
+      };
+    });
+
+    // Sort descending by score (ineligible schemes with 0 score rank at bottom)
+    recommendations.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    res.json(recommendations);
+  } catch (error: any) {
+    console.error("Recommend schemes error:", error);
+    res.status(500).json({ error: "Database error recommending schemes: " + error.message });
+  }
+});
+
+// 5a. Videos folder listing API
+app.get("/api/videos", (req, res) => {
+  const videosDir = VIDEOS_DIR;
+  
+  try {
+    if (!fs.existsSync(videosDir)) {
+      return res.json({ status: "success", count: 0, data: [] });
     }
 
-    // Land Requirement checks
-    if (scheme.maxLandRequirement && user.landSize > scheme.maxLandRequirement) {
-      score -= 25;
-      reasons.push(`Land size (${user.landSize} acres) exceeds maximum limit of ${scheme.maxLandRequirement} acres`);
-    } else if (scheme.minLandRequirement && user.landSize < scheme.minLandRequirement) {
-      score -= 15;
-      reasons.push(`Minimum land required is ${scheme.minLandRequirement} acres`);
-    } else {
-      score += 15;
-      reasons.push(`Perfect land dimensions size matching (${user.landSize} acres)`);
-    }
-
-    // Match crop interest to Category
-    const userCrops = user.cropsGrown.map(c => c.toLowerCase());
-    const isOrganicInterest = userCrops.some(c => c.includes("organic") || c.includes("ragi") || c.includes("millet"));
-    const isVegetableInterest = userCrops.some(c => c.includes("tomato") || c.includes("onion") || c.includes("potato") || c.includes("carrot"));
-
-    if (scheme.category === "Organic Farming" && isOrganicInterest) {
-      score += 20;
-      reasons.push("Matches your focus in organic/millet cultivation models");
-    } else if (scheme.category.includes("Irrigation") && isVegetableInterest) {
-      score += 15;
-      reasons.push("Water optimization matches vegetable grower guidelines");
-    }
-
-    // Clamping limits
-    score = Math.max(10, Math.min(100, score));
-
-    return {
-      ...scheme,
-      relevanceScore: score,
-      relevanceReason: reasons.join(". ") || "General agricultural scheme matching."
+    const SUPPORTED = [".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv"];
+    const CATEGORY_KEYWORDS: Record<string, string> = {
+      irrigation: "Irrigation",
+      drip: "Irrigation",
+      water: "Irrigation",
+      organic: "Organic Farming",
+      natural: "Organic Farming",
+      compost: "Organic Farming",
+      pest: "Pest Control",
+      disease: "Pest Control",
+      insect: "Pest Control",
+      spray: "Pest Control",
+      fertilizer: "Fertilizers",
+      nutrient: "Fertilizers",
+      soil: "Fertilizers",
+      smart: "Smart Farming",
+      drone: "Smart Farming",
+      hydroponic: "Smart Farming",
+      tech: "Smart Farming",
+      crop: "Crop Management",
+      harvest: "Crop Management",
+      sowing: "Crop Management",
+      grow: "Crop Management",
+      timelapse: "Crop Management",
+      growth: "Crop Management",
+      cabai: "Pest Control",
+      kentang: "Crop Management",
+      shallot: "Crop Management",
+      chili: "Pest Control",
+      potato: "Crop Management",
     };
-  });
 
-  // Sort descending
-  recommendations.sort((a, b) => b.relevanceScore - a.relevanceScore);
-  res.json(recommendations);
+    const files = fs.readdirSync(videosDir).filter(f => {
+      const ext = path.extname(f).toLowerCase();
+      return SUPPORTED.includes(ext);
+    });
+
+    const videos = files.map((filename, idx) => {
+      const ext = path.extname(filename);
+      const nameWithoutExt = filename.replace(ext, "");
+
+      // Format title: replace _ - . with spaces, capitalize each word, trim
+      const title = nameWithoutExt
+        .replace(/[_\-\.]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .split(" ")
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ")
+        .slice(0, 80); // cap at 80 chars
+
+      // Detect category from filename keywords
+      const lower = filename.toLowerCase();
+      let category = "Crop Management";
+      for (const [keyword, cat] of Object.entries(CATEGORY_KEYWORDS)) {
+        if (lower.includes(keyword)) {
+          category = cat;
+          break;
+        }
+      }
+
+      return {
+        id: `video-${idx + 1}`,
+        filename,
+        title,
+        category,
+        url: `/videos/${encodeURIComponent(filename)}`,
+        type: "video",
+        duration: "",
+        size: (() => {
+          try {
+            const stat = fs.statSync(path.join(videosDir, filename));
+            const mb = (stat.size / (1024 * 1024)).toFixed(1);
+            return `${mb} MB`;
+          } catch { return ""; }
+        })()
+      };
+    });
+
+    res.json({ status: "success", count: videos.length, data: videos });
+  } catch (err: any) {
+    console.error("[Videos API] Error:", err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
 });
 
 // 5. Educational Guides Endpoints
@@ -895,7 +1123,7 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // 10. Admin Analytics endpoints
-app.get("/api/admin/stats", (req, res) => {
+app.get("/api/admin/stats", async (req, res) => {
   // Synthesize analytic graphs
   const userGrowth = [
     { month: "Jan", users: 120 },
@@ -930,17 +1158,23 @@ app.get("/api/admin/stats", (req, res) => {
     { name: "Organic Support", applications: 90 }
   ];
 
-  res.json({
-    userGrowth,
-    cropViews,
-    schemeUsage,
-    farmersCount: db.users.length + 1445, // real dynamic counter
-    avgPredictionAccuracy: 94.2,
-    totalMandiRows: db.marketPrices.length
-  });
+  try {
+    const dbCount = users.length;
+    res.json({
+      userGrowth,
+      cropViews,
+      schemeUsage,
+      farmersCount: dbCount + 1445, // real dynamic counter
+      avgPredictionAccuracy: 94.2,
+      totalMandiRows: db.marketPrices.length
+    });
+  } catch (error: any) {
+    console.error("Admin stats error:", error);
+    res.status(500).json({ error: "Database error fetching stats: " + error.message });
+  }
 });
 
-app.get("/api/admin/farmers", (req, res) => {
+app.get("/api/admin/farmers", async (req, res) => {
   // Let's generate a list of dummy farm users alongside registered farmers so it looks premium
   const dynamicFarmersList = [
     { id: "farmer-nithin", name: "Nithin Kumar", email: "nithinraj805@gmail.com", phone: "9876543210", district: "Kolar", village: "Vemagal", crops: ["Tomato", "Ragi"], landSize: 2.4, status: "Active" },
@@ -949,24 +1183,30 @@ app.get("/api/admin/farmers", (req, res) => {
     { id: "farmer-4", name: "Savitha Gowda", email: "savitha@gmail.com", phone: "9113546781", district: "Mysuru", village: "Nanjangud", crops: ["Banana", "Marigold Flowers"], landSize: 3.2, status: "Pending approval" },
   ];
 
-  // Merge registered guys
-  db.users.forEach((user) => {
-    if (user.id !== "farmer-nithin") {
-      dynamicFarmersList.unshift({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        district: user.district,
-        village: user.village,
-        crops: user.cropsGrown,
-        landSize: user.landSize,
-        status: "Active"
-      });
-    }
-  });
+  try {
+    const list = users;
+    // Merge registered guys
+    list.forEach((user) => {
+      if (user.id !== "farmer-nithin") {
+        dynamicFarmersList.unshift({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          district: user.district,
+          village: user.village,
+          crops: user.cropsGrown,
+          landSize: user.landSize,
+          status: "Active"
+        });
+      }
+    });
 
-  res.json(dynamicFarmersList);
+    res.json(dynamicFarmersList);
+  } catch (error: any) {
+    console.error("Admin farmers error:", error);
+    res.status(500).json({ error: "Database error listing farmers: " + error.message });
+  }
 });
 
 // Admin add/update entities
@@ -1061,6 +1301,11 @@ app.post("/api/admin/guides/update", (req, res) => {
 // ======================== MOUNT VITE MIDDLEWARE ========================
 
 async function startServer() {
+  // Connect to MongoDB Atlas
+  await connectDb();
+
+  await seedDefaultUser();
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -1077,7 +1322,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[AgriConnect] Server up and listening on http://0.0.0.0:${PORT}`);
+    console.log(`[AgriConnect] Server up and listening on http://localhost:${PORT}`);
   });
 }
 

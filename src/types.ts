@@ -14,6 +14,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string;
   phone: string;
   state: string;
   district: string;
@@ -26,7 +27,7 @@ export interface User {
   watchlistCrops: string[];
 }
 
-export type CropCategory = "Vegetables" | "Fruits" | "Cereals" | "Pulses";
+export type CropCategory = "Vegetables" | "Fruits" | "Cereals" | "Pulses" | "Spices" | "Oilseeds";
 
 export interface MarketPrice {
   id: string;
@@ -62,6 +63,11 @@ export interface PredictionPayload {
   };
 }
 
+export interface SubsidyTiers {
+  scSt: number;
+  generalObcSmallMarginal: number;
+}
+
 export interface GovScheme {
   id: string;
   name: string;
@@ -71,14 +77,19 @@ export interface GovScheme {
   applyLink: string;
   category: string;
   subsidyPercentage: number;
+  subsidyTiers?: SubsidyTiers;
   minLandRequirement?: number; // acres
   maxLandRequirement?: number; // acres
+  maxLandRequirementAcres?: number;
+  maxLandRequirementHectares?: number;
   farmerCategories?: string[];
 }
 
 export interface GovSchemeRecommendation extends GovScheme {
   relevanceScore: number; // 0 to 100
   relevanceReason: string;
+  applicableSubsidy?: number;
+  eligible?: boolean;
 }
 
 export interface EducationalGuide {

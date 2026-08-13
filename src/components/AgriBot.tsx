@@ -10,6 +10,7 @@ interface AgriBotProps {
     district: string;
     preferredLanguage: Language;
   } | null;
+  currentLanguage?: Language;
 }
 
 interface ChatMessage {
@@ -20,12 +21,18 @@ interface ChatMessage {
   poweredBy?: string;
 }
 
-export default function AgriBot({ onClose, userProfile }: AgriBotProps) {
+export default function AgriBot({ onClose, userProfile, currentLanguage }: AgriBotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [language, setLanguage] = useState<Language>(userProfile?.preferredLanguage || Language.ENGLISH);
+  const [language, setLanguage] = useState<Language>(currentLanguage || userProfile?.preferredLanguage || Language.ENGLISH);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (currentLanguage) {
+      setLanguage(currentLanguage);
+    }
+  }, [currentLanguage]);
 
   // Default quick recommendations based on crops and schedules
   const quickPrompts: { [key in Language]: { label: string; query: string }[] } = {
@@ -149,30 +156,21 @@ export default function AgriBot({ onClose, userProfile }: AgriBotProps) {
   };
 
   return (
-    <div id="agribot-chat-container" className="flex flex-col h-full bg-white border border-[#d1e4d5] shadow-2xl relative overflow-hidden">
+    <div id="agribot-chat-container" className="bg-white flex flex-col h-full shadow-2xl">
       
       {/* Bot Header */}
-      <div className="p-4 bg-[#1a5c38] flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/20 rounded-xl">
-            <Bot className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h4 className="text-sm font-semibold text-white">AgriBot Assistant</h4>
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-300 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-300"></span>
-              </span>
-            </div>
-            <p className="text-[10px] text-green-200 uppercase tracking-wider">AI Farm Advisor</p>
-          </div>
+      <div className="bg-gradient-to-r from-[#14532d] to-[#166534] px-4 py-3.5 flex items-center gap-3 flex-shrink-0">
+        <div className="w-9 h-9 bg-white/15 rounded-full flex items-center justify-center border border-white/20 flex-shrink-0">
+          <Bot className="w-5 h-5 text-white" />
         </div>
-
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-bold text-sm leading-tight">AgriBot</p>
+          <p className="text-green-300 text-[11px]">AI Agricultural Assistant</p>
+        </div>
         <div className="flex items-center gap-2">
           {/* Language Toggle */}
           <div className="relative group/lang">
-            <button className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors cursor-pointer flex items-center gap-1">
+            <button className="p-1.5 border border-white/20 text-white/80 hover:bg-white/10 rounded-lg transition-colors cursor-pointer flex items-center gap-1">
               <Languages className="w-4 h-4" />
               <span className="text-[10px] font-semibold uppercase">{language}</span>
             </button>
@@ -193,12 +191,12 @@ export default function AgriBot({ onClose, userProfile }: AgriBotProps) {
           </div>
 
           <button onClick={() => { setMessages([{ id: "greet-reset", sender: "bot", text: getGreeting(language), timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), poweredBy: "AgriConnect Assistant" }]); }}
-            className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors cursor-pointer" title="Reset Chat">
+            className="p-1.5 border border-white/20 text-white/80 hover:bg-white/10 rounded-lg transition-colors cursor-pointer" title="Reset Chat">
             <Trash2 className="w-4 h-4" />
           </button>
           
           {onClose && (
-            <button onClick={onClose} className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors cursor-pointer">
+            <button onClick={onClose} className="p-1.5 border border-white/20 text-white/80 hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -208,49 +206,61 @@ export default function AgriBot({ onClose, userProfile }: AgriBotProps) {
       {/* Conversation Thread */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#f4f8f4]">
         {messages.map((m) => (
-          <div key={m.id} className={`flex flex-col ${m.sender === "user" ? "ml-auto items-end max-w-[85%]" : "mr-auto items-start max-w-[85%]"}`}>
-            <div className={`p-3 rounded-2xl text-sm leading-relaxed ${
-              m.sender === "user"
-                ? "bg-[#1a5c38] text-white rounded-br-none"
-                : "bg-white text-[#1a2e1c] border border-[#d1e4d5] rounded-bl-none shadow-sm"
-            }`}>{m.text}</div>
-            <div className="flex items-center gap-1.5 mt-1 px-1 text-[10px] text-[#7a9a80]">
-              <span>{m.timestamp}</span>
-              {m.poweredBy && (<><span>•</span><span className="text-[#1a5c38] flex items-center gap-0.5"><Sparkles className="w-2.5 h-2.5" /> {m.poweredBy}</span></>)}
+          m.sender === "user" ? (
+            <div key={m.id} className="flex justify-end mb-3">
+              <div>
+                <div className="chat-bubble-user">{m.text}</div>
+                <div className={`text-[10px] text-[#7a9a80] mt-1 ${m.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                  <span>{m.timestamp}</span>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div key={m.id} className="flex justify-start mb-3 gap-2">
+              <div className="w-7 h-7 bg-[#166534] rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <Bot className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div>
+                <div className="chat-bubble-bot">{m.text}</div>
+                <div className={`text-[10px] text-[#7a9a80] mt-1 flex items-center gap-1.5 ${m.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                  <span>{m.timestamp}</span>
+                  {m.poweredBy && (<><span>•</span><span className="text-[#166534] flex items-center gap-0.5"><Sparkles className="w-2.5 h-2.5" /> {m.poweredBy}</span></>)}
+                </div>
+              </div>
+            </div>
+          )
         ))}
 
         {loading && (
-          <div className="flex items-center gap-2 mr-auto bg-white border border-[#d1e4d5] p-3 rounded-2xl rounded-bl-none max-w-[80%] shadow-sm">
-            <div className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-[#1a5c38] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-              <span className="w-1.5 h-1.5 bg-[#1a5c38] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-              <span className="w-1.5 h-1.5 bg-[#1a5c38] rounded-full animate-bounce"></span>
+          <div className="flex justify-start mb-3 gap-2">
+            <div className="w-7 h-7 bg-[#166634] rounded-full flex items-center justify-center flex-shrink-0">
+              <Bot className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-[10px] text-[#7a9a80] animate-pulse">AgriBot thinking...</span>
+            <div className="chat-bubble-bot flex items-center gap-1 py-3">
+              <span className="typing-dot" />
+              <span className="typing-dot" />
+              <span className="typing-dot" />
+            </div>
           </div>
         )}
         <div ref={scrollRef} />
       </div>
 
-      {/* Suggested Quick Prompt Chips */}
-      <div className="px-4 py-2 border-t border-[#d1e4d5] bg-white overflow-x-auto whitespace-nowrap scrollbar-none flex gap-2">
-        {(quickPrompts[language] || quickPrompts[Language.ENGLISH]).map((p, i) => (
+      {/* Quick Suggestions Chips */}
+      <div className="flex items-center gap-1.5 px-4 py-2 overflow-x-auto no-scrollbar bg-[#f4f8f4] border-t border-[#d1e4d5] flex-shrink-0">
+        {(quickPrompts[language] || quickPrompts[Language.ENGLISH]).map((prompt, idx) => (
           <button
-            key={i}
-            onClick={() => handleSend(p.query)}
-            disabled={loading}
-            className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg border border-[#d1e4d5] text-[#4a6550] hover:text-[#1a5c38] hover:border-[#1a5c38] bg-[#f4f8f4] hover:bg-[#edf4ee] transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40"
+            key={idx}
+            onClick={() => handleSend(prompt.query)}
+            className="filter-chip text-[11px] py-1 px-3 whitespace-nowrap flex-shrink-0 active:scale-95 transition-transform"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-[#1a5c38]" />
-            {p.label}
+            {prompt.label}
           </button>
         ))}
       </div>
 
       {/* Input panel */}
-      <div className="p-3 bg-white border-t border-[#d1e4d5] flex gap-2 items-center">
+      <div className="bg-white border-t border-[#d1e4d5] px-3 py-3 flex-shrink-0 flex gap-2 items-center">
         <input
           type="text"
           value={input}
@@ -263,14 +273,14 @@ export default function AgriBot({ onClose, userProfile }: AgriBotProps) {
             language === Language.HINDI ? "यहाँ सवाल पूछें..." : "Type farming query..."
           }
           disabled={loading}
-          className="flex-1 bg-[#f4f8f4] border border-[#d1e4d5] rounded-xl px-3 py-2.5 text-sm text-[#1a2e1c] focus:outline-none focus:border-[#1a5c38] placeholder-[#7a9a80] disabled:opacity-50"
+          className="flex-1 bg-[#f0f6f1] border border-[#d1e4d5] rounded-full px-4 py-2 text-sm focus:outline-none focus:border-[#166634] focus:ring-2 focus:ring-[#166634]/10"
         />
         <button
           onClick={() => handleSend(input)}
           disabled={!input.trim() || loading}
-          className="p-2.5 bg-[#1a5c38] text-white rounded-xl hover:bg-[#134429] cursor-pointer disabled:opacity-40 transition-colors flex items-center justify-center"
+          className="w-9 h-9 bg-[#166534] hover:bg-[#14532d] rounded-full flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer border-none"
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-4 h-4 text-white" />
         </button>
       </div>
       

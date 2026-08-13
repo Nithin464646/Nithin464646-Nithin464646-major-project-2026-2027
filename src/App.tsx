@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { 
   Sprout, Award, BookOpen, Wrench, Bot, Bell, LogOut, MapPin, 
-  Activity, Sparkles, Menu, X, Check, Heart, ChevronRight, Info, AlertTriangle, ShieldAlert, Search, TrendingUp
+  Activity, Sparkles, Menu, X, Check, Heart, ChevronRight, Info, AlertTriangle, ShieldAlert, Search, TrendingUp, Languages
 } from "lucide-react";
 import { User, SmartAlert, Language } from "./types";
+import { getTranslation } from "./utils/translations";
 
 import WeatherWidget from "./components/WeatherWidget";
 import AgriBot from "./components/AgriBot";
@@ -11,13 +12,12 @@ import MarketPriceDashboard from "./components/MarketPriceDashboard";
 import GovSchemesPortal from "./components/GovSchemesPortal";
 import GuidesHub from "./components/GuidesHub";
 import AuthInterface from "./components/AuthInterface";
-import AdminPanel from "./components/AdminPanel";
 import AddonsTab from "./components/AddonsTab";
 import FuturePricePredictor from "./components/FuturePricePredictor";
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "market" | "predictor" | "schemes" | "education" | "addons" | "admin">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "market" | "predictor" | "schemes" | "education" | "addons">("overview");
   
   const [alerts, setAlerts] = useState<SmartAlert[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -26,6 +26,47 @@ export default function App() {
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [avgMarketPrice, setAvgMarketPrice] = useState("₹17,400");
   const [profitEstimate, setProfitEstimate] = useState("₹1,74,000");
+  const [language, setLanguage] = useState<Language>(Language.ENGLISH);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+
+  const LANGUAGE_OPTIONS = [
+    { code: Language.ENGLISH, label: "English",  native: "English",  flag: "🇬🇧" },
+    { code: Language.KANNADA, label: "Kannada",   native: "ಕನ್ನಡ",    flag: "🇮🇳" },
+    { code: Language.HINDI,   label: "Hindi",     native: "हिन्दी",   flag: "🇮🇳" },
+    { code: Language.TELUGU,  label: "Telugu",    native: "తెలుగు",   flag: "🇮🇳" },
+    { code: Language.TAMIL,   label: "Tamil",     native: "தமிழ்",    flag: "🇮🇳" },
+  ];
+
+  const t = (key: string) => getTranslation(language, key);
+
+  const handleLanguageChange = (langCode: Language) => {
+    setLanguage(langCode);
+    setShowLangMenu(false);
+
+    const langMap: Record<string, string> = {
+      [Language.ENGLISH]: "en",
+      [Language.KANNADA]: "kn",
+      [Language.HINDI]: "hi",
+      [Language.TELUGU]: "te",
+      [Language.TAMIL]: "ta",
+    };
+
+    const targetLang = langMap[langCode] || "en";
+
+    // Set Google Translate cookies for instantaneous full-page DOM translation
+    document.cookie = `googtrans=/en/${targetLang}; path=/; domain=${window.location.hostname}`;
+    document.cookie = `googtrans=/en/${targetLang}; path=/`;
+    document.cookie = `googtrans=/auto/${targetLang}; path=/`;
+
+    // Trigger Google Translate iframe combo element if ready
+    const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    if (combo) {
+      combo.value = targetLang;
+      combo.dispatchEvent(new Event('change'));
+    } else {
+      window.location.reload();
+    }
+  };
 
   const loadAlerts = async () => {
     try {
@@ -62,12 +103,9 @@ export default function App() {
     } catch (e) { console.error(e); }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      setUser(null);
-      setActiveTab("overview");
-    } catch (e) { console.error(e); }
+  const handleLogout = () => {
+    setUser(null);
+    setActiveTab("overview");
   };
 
   const getAlertIcon = (type: string) => {
@@ -87,17 +125,16 @@ export default function App() {
   }
 
   const navItems = [
-    { tag: "overview", label: "Overview", icon: Activity },
-    { tag: "market", label: "Crop Prices", icon: TrendingUp },
-    { tag: "predictor", label: "AI Forecaster", icon: Sparkles },
-    { tag: "schemes", label: "Schemes", icon: Award },
-    { tag: "education", label: "Guides & Videos", icon: BookOpen },
-    { tag: "addons", label: "Utilities", icon: Wrench },
-    { tag: "admin", label: "Admin", icon: ShieldAlert },
+    { tag: "overview",  label: t("overview"),  icon: Activity },
+    { tag: "market",    label: t("market"),    icon: TrendingUp },
+    { tag: "predictor", label: t("predictor"), icon: Sparkles },
+    { tag: "schemes",   label: t("schemes"),   icon: Award },
+    { tag: "education", label: t("education"), icon: BookOpen },
+    { tag: "addons",    label: t("addons"),    icon: Wrench },
   ];
 
   return (
-    <div id="agriconnect-workspace-root" className="min-h-screen flex flex-col bg-[#f4f8f4] font-sans" style={{ fontFamily: "'Outfit', sans-serif" }}>
+    <div id="agriconnect-workspace-root" className="min-h-screen flex flex-col bg-[#f0f6f1] font-sans" style={{ fontFamily: "'Outfit', sans-serif" }}>
 
       {/* ===== TOP HEADER ===== */}
       <header className="sticky top-0 z-40 bg-white border-b border-[#d1e4d5] shadow-sm">
@@ -105,11 +142,11 @@ export default function App() {
 
           {/* Logo */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-9 h-9 bg-[#1a5c38] rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#166534] to-[#14532d] rounded-xl flex items-center justify-center shadow-md shadow-green-900/20">
               <Sprout className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="text-[#1a5c38] font-bold text-lg leading-tight">Agri Connect</div>
+              <div className="text-[#166534] font-extrabold text-lg leading-tight tracking-tight">Agri Connect</div>
               <div className="text-[#7a9a80] text-[10px] leading-none hidden sm:block">Empowering Farmers, Enriching Future</div>
             </div>
           </div>
@@ -120,7 +157,7 @@ export default function App() {
             <input
               type="text"
               placeholder="Search crops, prices, schemes, tips..."
-              className="w-full pl-9 pr-4 py-2 bg-[#f4f8f4] border border-[#d1e4d5] rounded-lg text-sm text-[#1a2e1c] placeholder-[#7a9a80] focus:outline-none focus:border-[#1a5c38]"
+              className="w-full pl-9 pr-4 py-2 bg-[#f0f6f1] border-1.5 border-[#d1e4d5] rounded-full text-sm text-[#1a2e1c] placeholder-[#7a9a80] focus:outline-none focus:border-[#166534] transition-colors"
             />
           </div>
 
@@ -176,22 +213,69 @@ export default function App() {
               )}
             </div>
 
-            {/* User info + logout */}
-            <div className="hidden lg:flex items-center gap-3 border-l border-[#d1e4d5] pl-3">
-              <div className="w-8 h-8 rounded-full bg-[#1a5c38] flex items-center justify-center text-white text-sm font-bold">
-                {user.name.charAt(0).toUpperCase()}
+            {/* User info + language + logout — always visible */}
+            <div className="flex items-center gap-2 border-l border-[#d1e4d5] pl-3">
+              {/* Avatar + name (desktop only) */}
+              <div className="hidden lg:flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-[#1a5c38] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="text-right hidden xl:block">
+                  <p className="text-xs font-semibold text-[#1a2e1c]">{user.name}</p>
+                  <p className="text-[10px] text-[#7a9a80] uppercase tracking-wide">{user.category}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold text-[#1a2e1c]">{user.name}</p>
-                <p className="text-[10px] text-[#7a9a80] uppercase tracking-wide">{user.category}</p>
+
+              {/* Language selector */}
+              <div className="relative flex-shrink-0">
+                <button
+                  onClick={() => setShowLangMenu(prev => !prev)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 border border-[#d1e4d5] rounded-lg hover:bg-[#edf4ee] text-[#4a6550] text-xs font-semibold transition-all cursor-pointer"
+                  title={t("language")}
+                >
+                  <Languages className="w-3.5 h-3.5 text-[#1a5c38]" />
+                  <span>{LANGUAGE_OPTIONS.find(l => l.code === language)?.flag}</span>
+                </button>
+
+                {showLangMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowLangMenu(false)} />
+                    <div className="absolute right-0 top-full mt-2 bg-white border border-[#d1e4d5] rounded-xl shadow-2xl z-50 overflow-hidden" style={{minWidth: "190px"}}>
+                      <p className="text-[10px] font-bold text-[#7a9a80] uppercase tracking-widest px-4 py-2 border-b border-[#e8f2e9]">
+                        Select Language
+                      </p>
+                      {LANGUAGE_OPTIONS.map(lang => (
+                        <button
+                          key={lang.code}
+                          onClick={() => handleLanguageChange(lang.code)}
+                          className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors cursor-pointer
+                            ${language === lang.code
+                              ? "bg-[#edf4ee] text-[#166534] font-bold"
+                              : "text-[#4a6550] hover:bg-[#f4f8f4]"
+                            }`}
+                        >
+                          <span className="text-base">{lang.flag}</span>
+                          <div className="flex-1">
+                            <span className="block text-sm font-semibold">{lang.native}</span>
+                            <span className="text-[11px] text-[#7a9a80]">{lang.label}</span>
+                          </div>
+                          {language === lang.code && <Check className="w-3.5 h-3.5 text-[#1a5c38]" />}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
+
+              {/* Logout — always visible */}
               <button
                 id="btn-user-signout"
                 onClick={handleLogout}
-                className="w-8 h-8 flex items-center justify-center border border-[#d1e4d5] rounded-lg hover:bg-red-50 hover:text-red-500 hover:border-red-200 text-[#7a9a80] transition-all cursor-pointer"
-                title="Logout"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 text-red-600 text-xs font-semibold transition-all cursor-pointer flex-shrink-0"
+                title={t("logout")}
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t("logout")}</span>
               </button>
             </div>
 
@@ -205,20 +289,40 @@ export default function App() {
           </div>
         </div>
 
-        {/* ===== HORIZONTAL NAV TABS ===== */}
-        <div className="hidden md:block border-t border-[#e8f2e9] bg-[#1a5c38]">
-          <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 flex items-center gap-1 overflow-x-auto">
+        {/* ===== HORIZONTAL NAV TABS (DESKTOP) ===== */}
+        <div className="hidden md:block border-t border-[#166534]/30 bg-gradient-to-r from-[#14532d] to-[#166534]">
+          <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 flex items-center gap-0.5 overflow-x-auto no-scrollbar">
             {navItems.map((item) => (
               <button
                 key={item.tag}
                 onClick={() => setActiveTab(item.tag as any)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all cursor-pointer whitespace-nowrap border-b-2 ${
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-all cursor-pointer whitespace-nowrap border-b-2 rounded-t-lg ${
                   activeTab === item.tag
-                    ? "border-white text-white bg-white/10"
-                    : "border-transparent text-green-200 hover:text-white hover:bg-white/5"
+                    ? "border-white text-white bg-white/15 shadow-inner"
+                    : "border-transparent text-green-200/90 hover:text-white hover:bg-white/8"
                 }`}
               >
                 <item.icon className="w-4 h-4" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ===== MOBILE HORIZONTAL SCROLLING PILL TABS ===== */}
+        <div className="md:hidden bg-[#14532d] px-3 py-2 border-t border-green-800/40 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1.5 min-w-max">
+            {navItems.map((item) => (
+              <button
+                key={item.tag}
+                onClick={() => setActiveTab(item.tag as any)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === item.tag
+                    ? "bg-white text-[#14532d] font-extrabold shadow-sm"
+                    : "text-green-100 hover:bg-white/10"
+                }`}
+              >
+                <item.icon className="w-3.5 h-3.5" />
                 {item.label}
               </button>
             ))}
@@ -243,6 +347,26 @@ export default function App() {
               {item.label}
             </button>
           ))}
+
+          {/* Mobile logout */}
+          <div className="pt-2 mt-2 border-t border-[#d1e4d5]">
+            <div className="flex items-center gap-2.5 px-4 py-2">
+              <div className="w-7 h-7 rounded-full bg-[#1a5c38] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-[#1a2e1c] truncate">{user.name}</p>
+                <p className="text-[10px] text-[#7a9a80]">{user.category}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { handleLogout(); setShowMobileNav(false); }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
         </div>
       )}
 
@@ -254,38 +378,49 @@ export default function App() {
           <div className="space-y-6 animate-fade-in">
 
             {/* Hero banner */}
-            <div className="relative rounded-2xl overflow-hidden bg-[#1a5c38] min-h-52 flex items-center">
+            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#14532d] via-[#166534] to-[#15803d] min-h-56 flex items-center">
+              {/* Grid overlay pattern */}
+              <div className="absolute inset-0 hero-grid-pattern" />
+
               {/* Left text */}
               <div className="relative z-10 p-8 max-w-lg">
-                <p className="text-green-300 text-xs font-semibold uppercase tracking-wider mb-2">Your Trusted Agricultural Partner</p>
-                <h2 className="text-3xl font-bold text-white leading-tight">
-                  Welcome back,<br />{user.name}!
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-agri-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+                  </span>
+                  <p className="text-green-300 text-xs font-semibold uppercase tracking-wider">Your Trusted Agricultural Partner</p>
+                </div>
+                <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight">
+                  Welcome back,<br /><span className="text-green-300">{user.name}!</span>
                 </h2>
-                <p className="text-green-200 text-sm mt-2 leading-relaxed">
-                  Mandi price indexes in <span className="text-white font-semibold">{user.district}</span> remain high for {user.cropsGrown.join(", ") || "Tomato"}.
+                <p className="text-green-200/90 text-sm mt-3 leading-relaxed max-w-sm">
+                  Mandi price indexes in <span className="text-white font-bold">{user.district}</span> remain high for {user.cropsGrown.join(", ") || "Tomato"}.
                 </p>
                 <button
                   onClick={() => setActiveTab("market")}
-                  className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-white text-[#1a5c38] text-sm font-bold rounded-xl hover:bg-green-50 transition-colors cursor-pointer"
+                  className="mt-5 inline-flex items-center gap-2 px-6 py-2.5 bg-white text-[#166534] text-sm font-bold rounded-full hover:bg-green-50 transition-all shadow-lg cursor-pointer hover:scale-105 active:scale-95"
                 >
-                  Learn More <ChevronRight className="w-4 h-4" />
+                  View Mandi Prices <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Right decorative */}
-              <div className="absolute right-0 top-0 bottom-0 w-1/3 md:w-2/5 opacity-20 pointer-events-none select-none flex items-center justify-center">
-                <Sprout className="w-64 h-64 text-white" />
+              <div className="absolute right-0 top-0 bottom-0 w-1/3 md:w-2/5 opacity-10 pointer-events-none select-none flex items-center justify-center">
+                <Sprout className="w-72 h-72 text-white" />
               </div>
 
-              {/* Quick info cards */}
+              {/* Quick info cards — floating */}
               <div className="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-3">
-                <div className="bg-white rounded-xl p-4 shadow-md min-w-40">
-                  <p className="text-[10px] text-[#7a9a80] uppercase font-semibold">Avg Mandi Rate</p>
-                  <p className="text-xl font-bold text-[#1a5c38] mt-1">{avgMarketPrice}</p>
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl min-w-44 border border-white/20">
+                  <p className="text-[10px] text-[#7a9a80] uppercase font-bold tracking-widest">Avg Mandi Rate</p>
+                  <p className="text-2xl font-extrabold text-[#166534] mt-1">{avgMarketPrice}</p>
+                  <p className="text-[10px] text-green-600 font-semibold mt-0.5">↑ Active today</p>
                 </div>
-                <div className="bg-white rounded-xl p-4 shadow-md min-w-40">
-                  <p className="text-[10px] text-[#7a9a80] uppercase font-semibold">Projected Surplus</p>
-                  <p className="text-xl font-bold text-[#1a5c38] mt-1">{profitEstimate}</p>
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl min-w-44 border border-white/20">
+                  <p className="text-[10px] text-[#7a9a80] uppercase font-bold tracking-widest">Projected Surplus</p>
+                  <p className="text-2xl font-extrabold text-[#166534] mt-1">{profitEstimate}</p>
+                  <p className="text-[10px] text-blue-500 font-semibold mt-0.5">Estimated gross</p>
                 </div>
               </div>
             </div>
@@ -293,21 +428,22 @@ export default function App() {
             {/* Quick cards row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { title: "Soil Health, Better Yield", desc: "Get your soil tested regularly and improve soil fertility.", cta: "Healthy Soil, Healthy Life", tab: "education" },
-                { title: "PM-KISAN Scheme", desc: "Financial assistance of ₹6,000 per year to eligible farmers.", cta: "Check Eligibility", tab: "schemes" },
-                { title: "Protect Crops, Increase Profit", desc: "Use quality seeds, balanced fertilizers and timely irrigation.", cta: "Good Practice, Good Profit", tab: "addons" },
-                { title: "Weather Update", desc: "Stay updated with latest weather information for your region.", cta: "Check Weather", tab: "overview" },
+                { title: "Soil Health, Better Yield", desc: "Get your soil tested regularly and improve soil fertility.", cta: "Healthy Soil, Healthy Life", tab: "education", bg: "from-amber-400 to-orange-400", img: "🌱" },
+                { title: "PM-KISAN Scheme", desc: "Financial assistance of ₹6,000 per year to eligible farmers.", cta: "Check Eligibility", tab: "schemes", bg: "from-[#166534] to-[#15803d]", img: "👨‍🌾" },
+                { title: "Protect Crops, Profit", desc: "Use quality seeds, balanced fertilizers and timely irrigation.", cta: "Good Practice, Good Profit", tab: "addons", bg: "from-emerald-500 to-teal-500", img: "🌾" },
+                { title: "Weather Update", desc: "Stay updated with latest weather information for your region.", cta: "Check Weather", tab: "overview", bg: "from-sky-400 to-blue-500", img: "⛅" },
               ].map((card, i) => (
-                <div key={i} className="bg-white border border-[#d1e4d5] rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="h-28 bg-gradient-to-br from-[#edf4ee] to-[#d1e4d5] flex items-center justify-center">
-                    <Sprout className="w-16 h-16 text-[#1a5c38] opacity-30" />
+                <div key={i} className="bg-white border border-[#d1e4d5] rounded-2xl overflow-hidden hover:shadow-lg transition-all cursor-pointer group agri-card-lift"
+                  onClick={() => setActiveTab(card.tab as any)}>
+                  <div className={`h-32 bg-gradient-to-br ${card.bg} flex items-center justify-center relative`}>
+                    <span className="text-6xl group-hover:scale-110 transition-transform notranslate" translate="no">{card.img}</span>
                   </div>
                   <div className="p-4">
                     <h4 className="text-sm font-bold text-[#1a2e1c] leading-tight">{card.title}</h4>
                     <p className="text-xs text-[#7a9a80] mt-1 leading-relaxed">{card.desc}</p>
                     <button
-                      onClick={() => setActiveTab(card.tab as any)}
-                      className="mt-3 w-full py-1.5 bg-[#1a5c38] text-white text-xs font-semibold rounded-lg hover:bg-[#134429] transition-colors cursor-pointer"
+                      onClick={e => { e.stopPropagation(); setActiveTab(card.tab as any); }}
+                      className="mt-3 w-full py-2 bg-[#166534] text-white text-xs font-bold rounded-full hover:bg-[#14532d] transition-colors cursor-pointer shadow-sm"
                     >
                       {card.cta}
                     </button>
@@ -321,47 +457,48 @@ export default function App() {
 
             {/* Watchlist + AI Pest Tool */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white border border-[#d1e4d5] rounded-xl p-5">
+              <div className="bg-white border border-[#d1e4d5] rounded-2xl p-5 shadow-sm">
                 <h4 className="text-sm font-bold text-[#1a2e1c] mb-4 flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-[#1a5c38]" /> Watchlisted Crop Alerts
+                  <Heart className="w-4 h-4 text-[#166534]" /> Watchlisted Crop Alerts
                 </h4>
                 <div className="space-y-3">
                   {user.watchlistCrops && user.watchlistCrops.length > 0 ? (
                     user.watchlistCrops.map(crop => (
-                      <div key={crop} className="flex justify-between items-center p-3 rounded-lg border border-[#e8f2e9] bg-[#f4f8f4] hover:border-[#1a5c38]/30 transition-all">
+                      <div key={crop} className="flex justify-between items-center p-3 rounded-xl border border-[#e8f2e9] bg-[#f0f6f1] hover:border-[#166534]/30 hover:bg-white transition-all">
                         <div>
                           <span className="text-sm font-semibold text-[#1a2e1c]">{crop}</span>
-                          <span className="text-[10px] text-[#7a9a80] block uppercase tracking-wide">Trend: UP</span>
+                          <span className="text-[10px] text-green-600 font-semibold block">↑ Trend: UP</span>
                         </div>
                         <button
                           onClick={() => setActiveTab("market")}
-                          className="px-3 py-1 text-xs font-semibold bg-[#edf4ee] text-[#1a5c38] border border-[#d1e4d5] rounded-lg hover:bg-[#1a5c38] hover:text-white transition-colors cursor-pointer"
+                          className="px-3 py-1.5 text-xs font-bold bg-[#166534] text-white rounded-full hover:bg-[#14532d] transition-colors cursor-pointer"
                         >
                           Analyze →
                         </button>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-6 text-[#7a9a80] text-xs">
-                      No crops in watchlist. Go to market forecast and click "Star" to add favorites.
+                    <div className="text-center py-8 text-[#7a9a80] text-xs">
+                      <Heart className="w-8 h-8 text-[#d1e4d5] mx-auto mb-2" />
+                      No crops in watchlist. Go to market prices and click the ⭐ star to add favorites.
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-white border border-[#d1e4d5] rounded-xl p-5 flex flex-col justify-between">
+              <div className="bg-gradient-to-br from-[#14532d] to-[#166534] rounded-2xl p-5 flex flex-col justify-between shadow-sm">
                 <div>
-                  <span className="text-[10px] font-semibold text-[#1a5c38] tracking-wider uppercase">Farming Advisor</span>
-                  <h4 className="text-sm font-bold text-[#1a2e1c] mt-1 mb-2">AI Pest Diagnostic Tool</h4>
-                  <p className="text-xs text-[#7a9a80] leading-relaxed">
-                    Instant entomology advice. Select disease triggers or describe leaf spotting patterns.
+                  <span className="text-[10px] font-bold text-green-300 tracking-widest uppercase">AI Farming Advisor</span>
+                  <h4 className="text-lg font-extrabold text-white mt-1 mb-2 leading-tight">AI Pest Diagnostic Tool</h4>
+                  <p className="text-sm text-green-200/80 leading-relaxed">
+                    Instant entomology advice. Describe leaf spotting patterns or upload a photo.
                   </p>
                 </div>
                 <button
                   onClick={() => setActiveTab("addons")}
-                  className="mt-4 py-2 px-4 bg-[#1a5c38] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#134429] transition-colors"
+                  className="mt-5 py-2.5 px-5 bg-white text-[#166534] font-bold text-sm rounded-full cursor-pointer hover:bg-green-50 transition-all hover:scale-105 active:scale-95 shadow-lg"
                 >
-                  Scan Disease Now
+                  🔬 Scan Disease Now
                 </button>
               </div>
             </div>
@@ -370,15 +507,14 @@ export default function App() {
         )}
 
         {activeTab === "market" && (
-          <MarketPriceDashboard userProfile={user} onUpdateProfile={(updated) => setUser(updated)} />
+          <MarketPriceDashboard currentLanguage={language} userProfile={user} onUpdateProfile={(updated) => setUser(updated)} />
         )}
-        {activeTab === "predictor" && <FuturePricePredictor userProfile={user} />}
-        {activeTab === "schemes" && <GovSchemesPortal userProfile={user} />}
-        {activeTab === "education" && <GuidesHub />}
+        {activeTab === "predictor" && <FuturePricePredictor currentLanguage={language} userProfile={user} />}
+        {activeTab === "schemes" && <GovSchemesPortal currentLanguage={language} userProfile={user} />}
+        {activeTab === "education" && <GuidesHub currentLanguage={language} />}
         {activeTab === "addons" && (
-          <AddonsTab userProfile={user} onUpdateProfile={(updated) => setUser(updated)} />
+          <AddonsTab currentLanguage={language} userProfile={user} onUpdateProfile={(updated) => setUser(updated)} />
         )}
-        {activeTab === "admin" && <AdminPanel />}
 
         {/* Footer */}
         <footer className="mt-10 pt-6 border-t border-[#d1e4d5] flex flex-col sm:flex-row items-center justify-between text-xs text-[#7a9a80] gap-4">
@@ -418,7 +554,7 @@ export default function App() {
         <button
           id="btn-trigger-agribot"
           onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#1a5c38] hover:bg-[#134429] text-white shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all z-40 font-semibold text-sm"
+          className="fixed bottom-6 right-6 flex items-center gap-2 px-5 py-3.5 rounded-full bg-gradient-to-r from-[#14532d] to-[#166534] hover:from-[#166534] hover:to-[#15803d] text-white shadow-2xl shadow-green-900/40 cursor-pointer hover:scale-110 active:scale-95 transition-all z-40 font-bold text-sm border border-green-700/30"
           title="Open AgriBot Smart Chat"
         >
           <Bot className="w-5 h-5" />
